@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace XMLMerger.Commands
 {
-    internal class RelayCommand : ICommand
+    public class RelayCommand : ICommand
     {
         Action<object> _executeMethod;
         Func<object, bool> _canexecuteMethod;
