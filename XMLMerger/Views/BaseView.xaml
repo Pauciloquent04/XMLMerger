@@ -31,7 +31,7 @@
                 <TextBlock Text="XML Files" Margin="0 10 0 0" />
                 <ComboBox Name="xmlList" Width="150" ItemsSource="{Binding FromXMLFiles}" DisplayMemberPath="FileName" SelectedItem="{Binding SelectedXMLFile}" />
                 <TextBlock Text="XML Structure" Margin="0 10 0 0" />
-                <ComboBox Name="xmlElements" Width="150" ItemsSource="{Binding XMLStructure}" SelectedItem="{Binding SelectedXMLStructure}" />
+                <ComboBox Name="xmlElements" Width="150" ItemsSource="{Binding XMLStructure}" SelectedItem="{Binding SelectedXMLStructure}"  />
                 <TextBlock Text="Operations" Margin="0 10 0 0" />
                 <ComboBox Name="Operation" Width="150" ItemsSource="{Binding Operations}" SelectedItem="{Binding SelectedOperation}" />
             </StackPanel>
@@ -61,7 +61,7 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Content="Validate XML" Width="120" HorizontalAlignment="Center"/>
             <Button Grid.Column="1" Content="Restore Old" Width="120" HorizontalAlignment="Center"/>
-            <Button Grid.Column="2" Content="Apply Changes" Width="120" HorizontalAlignment="Center"/>
+            <Button Grid.Column="2" Content="Apply Changes" Width="120" HorizontalAlignment="Center" Command="{Binding ApplyChangesCommand}"/>
         </Grid>
     </Grid>
 </UserControl>

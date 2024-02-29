@@ -6,7 +6,10 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
+using System.Xml;
+using System.Xml.Linq;
 using XMLMerger.Commands;
 using XMLMerger.Models;
 
@@ -24,7 +27,7 @@ namespace XMLMerger.ViewModels
         public ObservableCollection<Site> ToSites { get; set; }
         public ObservableCollection<Project> ToProjects { get; set; }
         public ObservableCollection<string> XMLStructure { get; set; }
-        public List<string> Operations { get; set; }
+        public ObservableCollection<string> Operations { get; set; }
 
         private DB selectedFromDB;
         public DB SelectedFromDB
@@ -65,14 +68,21 @@ namespace XMLMerger.ViewModels
         private XMLFile selectedXMLFile;
         public XMLFile SelectedXMLFile
         {
-            get { return selectedXMLFile; }
+            get 
+            {
+                return selectedXMLFile;
+            }
             set
             {
+
                 selectedXMLFile = value;
                 OnPropertyChanged(nameof(SelectedXMLFile));
-                LoadXmlStructure();
+                ValidateXML();
+                //LoadXmlStructure();
+                //LoadXMLHierarchy();
             }
         }
+
 
         private string selectedXMLStructure;
         public string SelectedXMLStructure
@@ -131,6 +141,8 @@ namespace XMLMerger.ViewModels
                 OnPropertyChanged(nameof(SelectedToProject));
             }
         }
+        
+        public RelayCommand ApplyChangesCommand { get; set; }
 
         public MergerViewModel()
         {
@@ -144,10 +156,9 @@ namespace XMLMerger.ViewModels
             ToSites = new ObservableCollection<Site>();
             ToProjects = new ObservableCollection<Project>();
 
-            Operations = new List<string>()
-            {
-                "Replace", "Add", "Update"
-            };
+            Operations = new ObservableCollection<string>();
+
+            ApplyChangesCommand = new RelayCommand(e => ApplyChanges(), e => IsApplyChanges());
 
             string mergerPath = "C:/XMLMerger";
 
@@ -158,6 +169,63 @@ namespace XMLMerger.ViewModels
             }
 
         }
+
+        private void ApplyChanges()
+        {
+            CheckAndCopyXMLFile();
+        }
+        private bool IsApplyChanges()
+        {
+            if (SelectedOperation != null && SelectedToProject != null) return true;
+            return false;
+        }
+
+        private void CheckAndCopyXMLFile()
+        {
+            if (SelectedToProject != null && SelectedXMLFile != null)
+            {
+                string fromProjectPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name);
+                string toProjectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, SelectedToProject.Name);
+
+                string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
+                string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
+
+                if (!File.Exists(toFilePath))
+                {                    
+                    string logFilePath = Path.Combine(toProjectPath, "log.txt");
+                    
+                    File.Copy(fromFilePath, toFilePath);
+
+                    if (!File.Exists(logFilePath))
+                    {
+                        File.WriteAllText(logFilePath, "Log Recorded:\n\n");
+
+                    }
+
+                    StringBuilder sbReportLogFile = new StringBuilder();
+
+                    sbReportLogFile.AppendLine("");
+                    sbReportLogFile.AppendLine($"From File: {fromFilePath}");
+                    sbReportLogFile.AppendLine($"To File: {toFilePath}");
+                    sbReportLogFile.AppendLine($"User: {Environment.UserName}");
+                    sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
+                    sbReportLogFile.AppendLine($"Structure: {SelectedXMLStructure}");
+                    sbReportLogFile.AppendLine($"Operation: {SelectedOperation}");
+                    sbReportLogFile.AppendLine($"Backup File: -");
+                    sbReportLogFile.AppendLine($"Remark: New file is added to the project.");
+
+
+                    //string logEntry = $"From File: {fromFilePath}\nTo File: {toFilePath}\nUser: {Environment.UserName}\nDate: {DateTime.Now}\n" +
+                                      //$"Structure: {SelectedXMLStructure}\nOperation: {SelectedOperation}\nBackup File: Back Up\nRemark:\n\n";
+
+
+                    File.AppendAllText(logFilePath, sbReportLogFile.ToString());
+
+                }
+            }
+        }
+
+        
 
         private void LoadFromSites()
         {    
@@ -200,27 +268,42 @@ namespace XMLMerger.ViewModels
                 }
             }
         }
-        private void LoadToSites()
-        {
-            ToSites.Clear();
-            if (SelectedToDB != null)
-            {
-                string dbPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj");
 
-                foreach (var directory in Directory.GetDirectories(dbPath))
-                {
-                    ToSites.Add(new Site { Name = Path.GetFileName(directory) });
-                }
+        private void ValidateXML()
+        {
+            if (SelectedXMLFile == null)
+            {
+                XMLStructure.Clear();
+                Operations.Clear();
+                return;
             }
+            try
+            {
+                XElement xmlFile = XElement.Load(Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name, SelectedXMLFile.FileName));
+                LoadXmlStructure();
+            }
+            catch(Exception ex)
+            {
+                
+                XMLStructure.Clear();
+                Operations.Clear();
+                MessageBox.Show(ex.Message);
+            }
+            
+            
         }
 
         private void LoadXmlStructure()
         {
             XMLStructure.Clear();
-            XMLStructure.Add("...Blank...");
+            Operations.Clear();
+            Operations.Add("Replace");
+            Operations.Add("Add");
+            Operations.Add("Update");
             if (SelectedXMLFile != null)
             {
-                switch (SelectedXMLFile.FileName.ToLower())
+                XMLStructure.Add("...Blank...");
+                /*switch (SelectedXMLFile.FileName.ToLower())
                 {
                     case "students.xml":
                         XMLStructure.Add("Students");
@@ -235,10 +318,10 @@ namespace XMLMerger.ViewModels
                         XMLStructure.Add("Students > StudentDetail > Academic > UG");
                         XMLStructure.Add("Students > StudentDetail > Academic > PG");
                         XMLStructure.Add("Students > StudentDetail > Corporate");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > CompanyName");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Address");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Position");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > ID");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > CompanyName");                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Address");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Position");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > ID");
                         break;
 
                     case "catalog.xml":
@@ -253,10 +336,50 @@ namespace XMLMerger.ViewModels
 
                     default:
                         break;
+                }*/
+                string filePath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name, SelectedXMLFile.FileName);
+
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        XDocument xmlDoc = XDocument.Load(filePath);
+
+                        TraverseXmlStructure(xmlDoc.Root, "");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
                 }
             }
         }
 
+        private void TraverseXmlStructure(XElement element, string currentPath)
+        {
+            string elementName = element.Name.LocalName;
+            string path = currentPath == "" ? elementName : $"{currentPath} > {elementName}";
+            if (!XMLStructure.Contains(path)) XMLStructure.Add(path);
+
+            foreach (var childElement in element.Elements())
+            {
+                TraverseXmlStructure(childElement, path);
+            }
+        }
+
+        private void LoadToSites()
+        {
+            ToSites.Clear();
+            if (SelectedToDB != null)
+            {
+                string dbPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj");
+
+                foreach (var directory in Directory.GetDirectories(dbPath))
+                {
+                    ToSites.Add(new Site { Name = Path.GetFileName(directory) });
+                }
+            }
+        }
 
         private void LoadToProjects()
         {
@@ -299,4 +422,63 @@ namespace XMLMerger.ViewModels
 //            break;
 //    }
 //}
+
+/*
+        private XElement _selectedXMLRoot;
+        public XElement SelectedXMLRoot
+        {
+            get { return _selectedXMLRoot; }
+            set
+            {
+                _selectedXMLRoot = value;
+                OnPropertyChanged(nameof(SelectedXMLRoot));
+                LoadXMLHierarchy();
+            }
+        }
+
+        private DynamicXmlElementModel _xmlData;
+        public DynamicXmlElementModel XmlData
+        {
+            get { return _xmlData; }
+            set
+            {
+                _xmlData = value;
+                OnPropertyChanged(nameof(XmlData));
+            }
+        }
+
+        private void LoadXMLHierarchy()
+        {
+            XDocument xDocument = XDocument.Load("C:/XMLMerger/db-40/SPProj/Site-42/Project-422/catalog.xml");
+            XmlData = ParseXmlElement(xDocument.Root);
+        }
+
+        private DynamicXmlElementModel ParseXmlElement(XElement element)
+        {
+            var xmlElement = new DynamicXmlElementModel()
+            {
+                Name = element.Name.LocalName,
+                Value = element.Value
+            };
+            foreach (var childElement in element.Elements())
+            {
+                xmlElement.Children.Add(ParseXmlElement(childElement));
+            }
+            return xmlElement;
+        }
+        */
+
+        /*
+        private string CreateBackupFileName()
+        {
+            
+            string structure = SelectedXMLStructure.Replace(" ", "_");
+            string date = DateTime.Now.ToString("yyyyMMdd");
+            string dbName = SelectedToDB?.Name ?? "UnknownDB";
+            string siteName = SelectedToSite?.Name ?? "UnknownSite";
+            string projectName = SelectedToProject?.Name ?? "UnknownProject";
+
+            return $"{structure}_{date}_{dbName}_{siteName}_{projectName}_RArora.xml";
+        }
+        */
 
