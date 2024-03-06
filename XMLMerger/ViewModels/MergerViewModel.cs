@@ -190,42 +190,129 @@ namespace XMLMerger.ViewModels
                 string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
                 string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
 
-                if (!File.Exists(toFilePath))
-                {                    
-                    string logFilePath = Path.Combine(toProjectPath, "log.txt");
-                    
-                    File.Copy(fromFilePath, toFilePath);
-
-                    if (!File.Exists(logFilePath))
+                if(File.Exists(fromFilePath))
+                {
+                    if (File.Exists(toFilePath))
                     {
-                        File.WriteAllText(logFilePath, "Log Recorded:\n\n");
+                        try
+                        {
+                            XDocument fromXml = XDocument.Load(fromFilePath);
+                            XDocument toXml = XDocument.Load(toFilePath);
 
+                            string[] structure = SelectedXMLStructure.Split('>').Select(e => e.Trim()).ToArray();
+                            int structureLength = structure.Length;
+                            string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                            var fromElements = fromXml.Descendants(selectedStructure);
+                            var toElements = toXml.Descendants(selectedStructure);
+
+                            foreach (var fromElement in fromElements)
+                            {
+                                foreach (var toElement in toElements)
+                                {
+                                    if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
+                                    {
+                                        toElement.Add(
+                                            from element in fromElement.Descendants(structure[structureLength - 1])
+                                            where !toElement.Descendants(structure[structureLength - 1])
+                                            .Any(x => x.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                            select element
+                                            );
+                                    }
+
+                                }
+
+                            }
+
+                            CreateBackupFileName(toProjectPath, toFilePath);
+                            toXml.Save(toFilePath);
+
+                            LogWriter(fromFilePath, toFilePath);
+
+                            LoadXMLFiles();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message);
+                        }
                     }
+                    else
+                    {
+                    
+                        File.Copy(fromFilePath, toFilePath);
 
-                    StringBuilder sbReportLogFile = new StringBuilder();
-
-                    sbReportLogFile.AppendLine("");
-                    sbReportLogFile.AppendLine($"From File: {fromFilePath}");
-                    sbReportLogFile.AppendLine($"To File: {toFilePath}");
-                    sbReportLogFile.AppendLine($"User: {Environment.UserName}");
-                    sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
-                    sbReportLogFile.AppendLine($"Structure: {SelectedXMLStructure}");
-                    sbReportLogFile.AppendLine($"Operation: {SelectedOperation}");
-                    sbReportLogFile.AppendLine($"Backup File: -");
-                    sbReportLogFile.AppendLine($"Remark: New file is added to the project.");
-
-
-                    //string logEntry = $"From File: {fromFilePath}\nTo File: {toFilePath}\nUser: {Environment.UserName}\nDate: {DateTime.Now}\n" +
-                                      //$"Structure: {SelectedXMLStructure}\nOperation: {SelectedOperation}\nBackup File: Back Up\nRemark:\n\n";
-
-
-                    File.AppendAllText(logFilePath, sbReportLogFile.ToString());
-
+                        LogWriter(fromFilePath, toFilePath);
+                    }
+                    
                 }
             }
         }
 
-        
+        private void LogWriter(string fromFilePath,string toFilePath)
+        {
+            string logFolderPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, SelectedToProject.Name, "Log Folder");
+            string logFilePath;
+            if (!Directory.Exists(logFolderPath))
+            {
+                Directory.CreateDirectory(logFolderPath);
+                logFilePath = Path.Combine(logFolderPath, "log.txt");
+                File.WriteAllText(logFilePath, "Log Recorded:\n\n");
+
+            }
+            else
+            {
+                logFilePath = Path.Combine(logFolderPath, "log.txt");
+            }
+
+            StringBuilder sbReportLogFile = new StringBuilder();
+
+            sbReportLogFile.AppendLine("");
+            sbReportLogFile.AppendLine($"From File: {fromFilePath}");
+            sbReportLogFile.AppendLine($"To File: {toFilePath}");
+            sbReportLogFile.AppendLine($"User: {Environment.UserName}");
+            sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
+            sbReportLogFile.AppendLine($"Structure: {SelectedXMLStructure}");
+
+            switch (SelectedOperation)
+            {
+                case "Replace":
+                    sbReportLogFile.AppendLine($"Operation: Replace");
+                    sbReportLogFile.AppendLine($"Backup File: -");
+                    sbReportLogFile.AppendLine($"Remark: New file is added to the project.");
+                    break;
+                case "Add":
+                    sbReportLogFile.AppendLine($"Operation: Add");
+                    sbReportLogFile.AppendLine($"Backup File: To be made");
+                    sbReportLogFile.AppendLine($"Remark: Added elements to file.");
+                    break;
+                case "Update":
+                    sbReportLogFile.AppendLine($"Operation: Update");
+                    sbReportLogFile.AppendLine($"Backup File: To be give");
+                    sbReportLogFile.AppendLine($"Remark: Update the element.");
+                    break;
+            }
+
+
+            //string logEntry = $"From File: {fromFilePath}\nTo File: {toFilePath}\nUser: {Environment.UserName}\nDate: {DateTime.Now}\n" +
+            //$"Structure: {SelectedXMLStructure}\nOperation: {SelectedOperation}\nBackup File: Back Up\nRemark:\n\n";
+
+
+            File.AppendAllText(logFilePath, sbReportLogFile.ToString());
+        }
+
+        private void CreateBackupFileName(string projectPath, string filePath)
+        {
+            string backupPath = Path.Combine(projectPath, "Log Backup");
+            if (!Directory.Exists(backupPath))
+            {
+                Directory.CreateDirectory(backupPath);
+            }
+            string name = Path.GetFileNameWithoutExtension(filePath);
+            string date = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            File.Copy(filePath, Path.Combine(backupPath, $"{name}_bk_{date}.xml"));
+            
+        }
 
         private void LoadFromSites()
         {    
@@ -297,46 +384,13 @@ namespace XMLMerger.ViewModels
         {
             XMLStructure.Clear();
             Operations.Clear();
-            Operations.Add("Replace");
-            Operations.Add("Add");
-            Operations.Add("Update");
             if (SelectedXMLFile != null)
             {
+                Operations.Add("Replace");
+                Operations.Add("Add");
+                Operations.Add("Update");
                 XMLStructure.Add("...Blank...");
-                /*switch (SelectedXMLFile.FileName.ToLower())
-                {
-                    case "students.xml":
-                        XMLStructure.Add("Students");
-                        XMLStructure.Add("Students > StudentDetail");
-                        XMLStructure.Add("Students > StudentDetail > Personal");
-                        XMLStructure.Add("Students > StudentDetail > Personal > Age");
-                        XMLStructure.Add("Students > StudentDetail > Personal > Gender");
-                        XMLStructure.Add("Students > StudentDetail > Personal > City");
-                        XMLStructure.Add("Students > StudentDetail > Academic");
-                        XMLStructure.Add("Students > StudentDetail > Academic > Tenth");
-                        XMLStructure.Add("Students > StudentDetail > Academic > Twelfth");
-                        XMLStructure.Add("Students > StudentDetail > Academic > UG");
-                        XMLStructure.Add("Students > StudentDetail > Academic > PG");
-                        XMLStructure.Add("Students > StudentDetail > Corporate");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Company");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > CompanyName");                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Address");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Position");
-                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > ID");
-                        break;
-
-                    case "catalog.xml":
-                        XMLStructure.Add("catalog");
-                        XMLStructure.Add("catalog > product");
-                        XMLStructure.Add("catalog > product > catalog_item");
-                        XMLStructure.Add("catalog > product > catalog_item > item_number");
-                        XMLStructure.Add("catalog > product > catalog_item > price");
-                        XMLStructure.Add("catalog > product > catalog_item > size");
-                        XMLStructure.Add("catalog > product > catalog_item > size > color_swatch");
-                        break;
-
-                    default:
-                        break;
-                }*/
+                
                 string filePath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name, SelectedXMLFile.FileName);
 
                 if (File.Exists(filePath))
@@ -423,62 +477,54 @@ namespace XMLMerger.ViewModels
 //    }
 //}
 
+
+
 /*
-        private XElement _selectedXMLRoot;
-        public XElement SelectedXMLRoot
-        {
-            get { return _selectedXMLRoot; }
-            set
-            {
-                _selectedXMLRoot = value;
-                OnPropertyChanged(nameof(SelectedXMLRoot));
-                LoadXMLHierarchy();
-            }
-        }
+private string CreateBackupFileName()
+{
 
-        private DynamicXmlElementModel _xmlData;
-        public DynamicXmlElementModel XmlData
-        {
-            get { return _xmlData; }
-            set
-            {
-                _xmlData = value;
-                OnPropertyChanged(nameof(XmlData));
-            }
-        }
+    string structure = SelectedXMLStructure.Replace(" ", "_");
+    string date = DateTime.Now.ToString("yyyyMMdd");
+    string dbName = SelectedToDB?.Name ?? "UnknownDB";
+    string siteName = SelectedToSite?.Name ?? "UnknownSite";
+    string projectName = SelectedToProject?.Name ?? "UnknownProject";
 
-        private void LoadXMLHierarchy()
-        {
-            XDocument xDocument = XDocument.Load("C:/XMLMerger/db-40/SPProj/Site-42/Project-422/catalog.xml");
-            XmlData = ParseXmlElement(xDocument.Root);
-        }
+    return $"{structure}_{date}_{dbName}_{siteName}_{projectName}_RArora.xml";
+}
+*/
 
-        private DynamicXmlElementModel ParseXmlElement(XElement element)
-        {
-            var xmlElement = new DynamicXmlElementModel()
-            {
-                Name = element.Name.LocalName,
-                Value = element.Value
-            };
-            foreach (var childElement in element.Elements())
-            {
-                xmlElement.Children.Add(ParseXmlElement(childElement));
-            }
-            return xmlElement;
-        }
-        */
+                /*switch (SelectedXMLFile.FileName.ToLower())
+                {
+                    case "students.xml":
+                        XMLStructure.Add("Students");
+                        XMLStructure.Add("Students > StudentDetail");
+                        XMLStructure.Add("Students > StudentDetail > Personal");
+                        XMLStructure.Add("Students > StudentDetail > Personal > Age");
+                        XMLStructure.Add("Students > StudentDetail > Personal > Gender");
+                        XMLStructure.Add("Students > StudentDetail > Personal > City");
+                        XMLStructure.Add("Students > StudentDetail > Academic");
+                        XMLStructure.Add("Students > StudentDetail > Academic > Tenth");
+                        XMLStructure.Add("Students > StudentDetail > Academic > Twelfth");
+                        XMLStructure.Add("Students > StudentDetail > Academic > UG");
+                        XMLStructure.Add("Students > StudentDetail > Academic > PG");
+                        XMLStructure.Add("Students > StudentDetail > Corporate");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > CompanyName");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Address");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > Position");
+                        XMLStructure.Add("Students > StudentDetail > Corporate > Company > ID");
+                        break;
 
-        /*
-        private string CreateBackupFileName()
-        {
-            
-            string structure = SelectedXMLStructure.Replace(" ", "_");
-            string date = DateTime.Now.ToString("yyyyMMdd");
-            string dbName = SelectedToDB?.Name ?? "UnknownDB";
-            string siteName = SelectedToSite?.Name ?? "UnknownSite";
-            string projectName = SelectedToProject?.Name ?? "UnknownProject";
+                    case "catalog.xml":
+                        XMLStructure.Add("catalog");
+                        XMLStructure.Add("catalog > product");
+                        XMLStructure.Add("catalog > product > catalog_item");
+                        XMLStructure.Add("catalog > product > catalog_item > item_number");
+                        XMLStructure.Add("catalog > product > catalog_item > price");
+                        XMLStructure.Add("catalog > product > catalog_item > size");
+                        XMLStructure.Add("catalog > product > catalog_item > size > color_swatch");
+                        break;
 
-            return $"{structure}_{date}_{dbName}_{siteName}_{projectName}_RArora.xml";
-        }
-        */
-
+                    default:
+                        break;
+                }*/
