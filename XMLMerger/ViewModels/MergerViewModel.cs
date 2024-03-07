@@ -251,10 +251,10 @@ namespace XMLMerger.ViewModels
 
                             }
 
-                            CreateBackupFileName(toProjectPath, toFilePath);
+                            string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
                             toXml.Save(toFilePath);
 
-                            LogWriter(fromFilePath, toFilePath);
+                            LogWriter(fromFilePath, toFilePath, bkFileName);
 
                             LoadXMLFiles();
                         }
@@ -275,7 +275,7 @@ namespace XMLMerger.ViewModels
             }
         }
 
-        private void LogWriter(string fromFilePath,string toFilePath)
+        private void LogWriter(string fromFilePath,string toFilePath, string backupFile = null)
         {
             string logFolderPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, SelectedToProject.Name, "Log Folder");
             string logFilePath;
@@ -300,6 +300,8 @@ namespace XMLMerger.ViewModels
             sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
             sbReportLogFile.AppendLine($"Structure: {SelectedXMLStructure}");
 
+
+
             switch (SelectedOperation)
             {
                 case "Replace":
@@ -309,7 +311,7 @@ namespace XMLMerger.ViewModels
                     break;
                 case "Add":
                     sbReportLogFile.AppendLine($"Operation: Add");
-                    sbReportLogFile.AppendLine($"Backup File: To be made");
+                    sbReportLogFile.AppendLine($"Backup File: {backupFile}");
                     sbReportLogFile.AppendLine($"Remark: Added elements to file.");
                     break;
                 case "Update":
@@ -327,7 +329,7 @@ namespace XMLMerger.ViewModels
             File.AppendAllText(logFilePath, sbReportLogFile.ToString());
         }
 
-        private void CreateBackupFileName(string projectPath, string filePath)
+        private string CreateAndReturnBackupFileName(string projectPath, string filePath)
         {
             string backupPath = Path.Combine(projectPath, "Log Backup");
             if (!Directory.Exists(backupPath))
@@ -341,8 +343,9 @@ namespace XMLMerger.ViewModels
 
             DeleteBackupFile(backupPath, name);
 
-            File.Copy(filePath, Path.Combine(backupPath, $"{name}_bk_{date}.xml"));
-            
+            string fileName = $"{name}_bk_{date}.xml";
+            File.Copy(filePath, Path.Combine(backupPath, fileName));
+            return fileName;
         }
 
         private void DeleteBackupFile(string path, string name)
