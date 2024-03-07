@@ -172,7 +172,18 @@ namespace XMLMerger.ViewModels
 
         private void ApplyChanges()
         {
-            CheckAndCopyXMLFile();
+            if(SelectedOperation == "Replace")
+            {
+                ReplaceXMLFile();
+            }
+            else if(SelectedOperation == "Add")
+            {
+                AddXMLFile();
+            }
+            else if(SelectedOperation == "Update")
+            {
+
+            }
         }
         private bool IsApplyChanges()
         {
@@ -180,7 +191,23 @@ namespace XMLMerger.ViewModels
             return false;
         }
 
-        private void CheckAndCopyXMLFile()
+        private void ReplaceXMLFile()
+        {
+            string fromProjectPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name);
+            string toProjectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, SelectedToProject.Name);
+
+            string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
+            string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
+
+            if (File.Exists(fromFilePath))
+            {
+                File.Copy(fromFilePath, toFilePath);
+
+                LogWriter(fromFilePath, toFilePath);
+            }
+        }
+
+        private void AddXMLFile()
         {
             if (SelectedToProject != null && SelectedXMLFile != null)
             {
@@ -310,9 +337,30 @@ namespace XMLMerger.ViewModels
             string name = Path.GetFileNameWithoutExtension(filePath);
             string date = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
+            //int count = 0;
+
+            DeleteBackupFile(backupPath, name);
+
             File.Copy(filePath, Path.Combine(backupPath, $"{name}_bk_{date}.xml"));
             
         }
+
+        private void DeleteBackupFile(string path, string name)
+        {
+            List<FileInfo> files = new List<FileInfo>();
+
+            foreach (var file in Directory.GetFiles(path, $"{name}_bk_*.xml"))
+            {
+                files.Add(new FileInfo(file));
+            }
+            files.OrderBy(x => x.CreationTime);
+
+            if (files.Count == 5)
+            {
+                File.Delete(files[0].FullName);
+            }
+        }
+
 
         private void LoadFromSites()
         {    
