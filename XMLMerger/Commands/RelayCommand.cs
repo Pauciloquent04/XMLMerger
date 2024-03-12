@@ -9,13 +9,13 @@ namespace XMLMerger.Commands
 {
     public class RelayCommand : ICommand
     {
-        Action<object> _executeMethod;
-        Func<object, bool> _canexecuteMethod;
+        private Action<object> executeMethod;
+        private Func<object, bool> canexecuteMethod;
 
         public RelayCommand(Action<object> executeMethod, Func<object, bool> canexecuteMethod = null)
         {
-            _executeMethod = executeMethod;
-            _canexecuteMethod = canexecuteMethod;
+            this.executeMethod = executeMethod;
+            this.canexecuteMethod = canexecuteMethod;
         }
 
         public event EventHandler CanExecuteChanged
@@ -26,13 +26,12 @@ namespace XMLMerger.Commands
 
         public bool CanExecute(object parameter)
         {
-            if(_canexecuteMethod != null) { return _canexecuteMethod(parameter); }
-            else { return false; }
+            return this.canexecuteMethod == null || this.canexecuteMethod(parameter);
         }
 
         public void Execute(object parameter)
         {
-            _executeMethod(parameter);
+            this.executeMethod(parameter);
         }
     }
 }

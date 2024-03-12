@@ -31,6 +31,7 @@ namespace XMLMerger.ViewModels
         public ObservableCollection<Project> ToProjects { get; set; }
         public ObservableCollection<string> XMLStructure { get; set; }
         public ObservableCollection<string> Operations { get; set; }
+        public ObservableCollection<Project> ToProjectsCollection { get; set; }
 
         private DB selectedFromDB;
         public DB SelectedFromDB
@@ -146,6 +147,24 @@ namespace XMLMerger.ViewModels
         }
 
         public RelayCommand ApplyChangesCommand { get; set; }
+        
+
+        //private RelayCommand onCheckedCommand;
+        //public RelayCommand OnCheckedCommand { 
+        //    get { return onCheckedCommand; } 
+        //}
+        public RelayCommand OnUncheckedCommand { get; set; }
+
+        //private ICommand onCheckedCommand;
+        //public ICommand OnCheckedCommand
+        //{
+        //    get
+        //    {
+        //        if (onCheckedCommand == null)
+        //            onCheckedCommand = new RelayCommand(p => AddChanges(), p => IsAddChanges());
+        //        return onCheckedCommand;
+        //    }
+        //}
 
         public MergerViewModel()
         {
@@ -161,7 +180,12 @@ namespace XMLMerger.ViewModels
 
             Operations = new ObservableCollection<string>();
 
+            ToProjectsCollection = new ObservableCollection<Project>();
+
             ApplyChangesCommand = new RelayCommand(e => ApplyChanges(), e => IsApplyChanges());
+
+            //OnCheckedCommand = new RelayCommand(m => AddChanges(), m => IsAddChanges());
+            //OnUncheckedCommand = new RelayCommand(RemoveChanges);
 
             string mergerPath = "C:/XMLMerger";
 
@@ -216,7 +240,7 @@ namespace XMLMerger.ViewModels
 
         private bool IsApplyChanges()
         {
-            if (SelectedOperation != null && SelectedToProject != null && SelectedOperation != "Add")
+            if (SelectedOperation != null && ToProjectsCollection != null && SelectedOperation != "Add")
             {
                 return true;
             }
@@ -563,6 +587,37 @@ namespace XMLMerger.ViewModels
             }
         }
 
+        public void AddChanges()
+        {
+                foreach (var project in ToProjects)
+                {
+                    if (project.IsChecked && !ToProjectsCollection.Contains(project))
+                    {
+                        ToProjectsCollection.Add(project);
+                    }
+                }
+        }
+
+        private bool IsAddChanges()
+        {
+            return true;
+        }
+
+        private void RemoveChanges()
+        {
+                foreach (var project in ToProjectsCollection)
+                {
+                    if (!project.IsChecked)
+                    {
+                        ToProjectsCollection.Remove(project);
+                    }
+                }
+        }
+
+        private bool IsRemoveChanges()
+        {
+            return true;
+        }
 
     }
 }
