@@ -29,9 +29,10 @@ namespace XMLMerger.ViewModels
         public ObservableCollection<DB> ToDatabases { get; set; }
         public ObservableCollection<Site> ToSites { get; set; }
         public ObservableCollection<Project> ToProjects { get; set; }
-        public ObservableCollection<string> XMLStructure { get; set; }
+        public ObservableCollection<XmlTags> XMLStructure { get; set; }
         public ObservableCollection<string> Operations { get; set; }
         public ObservableCollection<Project> ToProjectsCollection { get; set; }
+        public ObservableCollection<XmlTags> XmlStructureCollection { get; set; }
 
         private DB selectedFromDB;
         public DB SelectedFromDB
@@ -147,24 +148,10 @@ namespace XMLMerger.ViewModels
         }
 
         public RelayCommand ApplyChangesCommand { get; set; }
-        
-
-        //private RelayCommand onCheckedCommand;
-        //public RelayCommand OnCheckedCommand { 
-        //    get { return onCheckedCommand; } 
-        //}
-        public RelayCommand OnUncheckedCommand { get; set; }
-
-        //private ICommand onCheckedCommand;
-        //public ICommand OnCheckedCommand
-        //{
-        //    get
-        //    {
-        //        if (onCheckedCommand == null)
-        //            onCheckedCommand = new RelayCommand(p => AddChanges(), p => IsAddChanges());
-        //        return onCheckedCommand;
-        //    }
-        //}
+        public RelayCommand OnCheckedToProjectCommand { get; }
+        public RelayCommand OnUncheckedToProjectCommand { get; }
+        public RelayCommand OnCheckedXmlStructureCommand { get; }
+        public RelayCommand OnUncheckedXmlStructureCommand { get; }
 
         public MergerViewModel()
         {
@@ -172,7 +159,7 @@ namespace XMLMerger.ViewModels
             FromSites = new ObservableCollection<Site>();
             FromProjects = new ObservableCollection<Project>();
             FromXMLFiles = new ObservableCollection<XMLFile>();
-            XMLStructure = new ObservableCollection<string>();
+            XMLStructure = new ObservableCollection<XmlTags>();
 
             ToDatabases = new ObservableCollection<DB>();
             ToSites = new ObservableCollection<Site>();
@@ -181,11 +168,15 @@ namespace XMLMerger.ViewModels
             Operations = new ObservableCollection<string>();
 
             ToProjectsCollection = new ObservableCollection<Project>();
+            XmlStructureCollection = new ObservableCollection<XmlTags>();
 
             ApplyChangesCommand = new RelayCommand(e => ApplyChanges(), e => IsApplyChanges());
 
-            //OnCheckedCommand = new RelayCommand(m => AddChanges(), m => IsAddChanges());
-            //OnUncheckedCommand = new RelayCommand(RemoveChanges);
+            OnCheckedToProjectCommand = new RelayCommand(m => AddToProjects(), m => IsAddToProjects());
+            OnUncheckedToProjectCommand = new RelayCommand(m => RemoveToProjects(), m => IsRemoveToProjects());
+
+            OnCheckedXmlStructureCommand = new RelayCommand(m => AddXmlStructure(), m => IsAddXmlStructure());
+            OnUncheckedXmlStructureCommand = new RelayCommand(m => RemoveXmlStructure(), m => IsRemoveXmlStructure());
 
             string mergerPath = "C:/XMLMerger";
 
@@ -527,7 +518,7 @@ namespace XMLMerger.ViewModels
                 Operations.Add("Replace");
                 Operations.Add("Add");
                 Operations.Add("Update");
-                XMLStructure.Add("...Blank...");
+                XMLStructure.Add(new XmlTags { Name = "...Blank..."});
 
                 string filePath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name, SelectedXMLFile.FileName);
 
@@ -550,12 +541,12 @@ namespace XMLMerger.ViewModels
         private void TraverseXmlStructure(XElement element, string currentPath)
         {
             string elementName = element.Name.LocalName;
-            string path = currentPath == "" ? elementName : $"{currentPath} > {elementName}";
-            if (!XMLStructure.Contains(path)) XMLStructure.Add(path);
+            string tagPath = currentPath == "" ? elementName : $"{currentPath} > {elementName}";
+            if (!XMLStructure.Any(x => x.Name.Equals(tagPath))) XMLStructure.Add(new XmlTags { Name = tagPath});
 
             foreach (var childElement in element.Elements())
             {
-                TraverseXmlStructure(childElement, path);
+                TraverseXmlStructure(childElement, tagPath);
             }
         }
 
@@ -587,34 +578,70 @@ namespace XMLMerger.ViewModels
             }
         }
 
-        public void AddChanges()
+        public void AddToProjects()
         {
-                foreach (var project in ToProjects)
+            foreach (var project in ToProjects)
+            {
+                if (project.IsChecked && !ToProjectsCollection.Contains(project))
                 {
-                    if (project.IsChecked && !ToProjectsCollection.Contains(project))
-                    {
-                        ToProjectsCollection.Add(project);
-                    }
+                    ToProjectsCollection.Add(project);
                 }
+            }
         }
 
-        private bool IsAddChanges()
+        private bool IsAddToProjects()
         {
             return true;
         }
 
-        private void RemoveChanges()
+        private void RemoveToProjects()
         {
-                foreach (var project in ToProjectsCollection)
+            List<Project> tempChecked = ToProjectsCollection.ToList();
+            foreach (var project in tempChecked)
+            {
+                if (!project.IsChecked)
                 {
-                    if (!project.IsChecked)
-                    {
-                        ToProjectsCollection.Remove(project);
-                    }
+                    ToProjectsCollection.Remove(project);
                 }
+            }
+            tempChecked.Clear();
         }
 
-        private bool IsRemoveChanges()
+        private bool IsRemoveToProjects()
+        {
+            return true;
+        }
+
+        public void AddXmlStructure()
+        {
+            foreach (var xmlTag in XMLStructure)
+            {
+                if (xmlTag.IsChecked && !XmlStructureCollection.Contains(xmlTag))
+                {
+                    XmlStructureCollection.Add(xmlTag);
+                }
+            }
+        }
+
+        private bool IsAddXmlStructure()
+        {
+            return true;
+        }
+
+        private void RemoveXmlStructure()
+        {
+            List<XmlTags> tempChecked = XmlStructureCollection.ToList();
+            foreach (var xmlTag in tempChecked)
+            {
+                if (!xmlTag.IsChecked)
+                {
+                    XmlStructureCollection.Remove(xmlTag);
+                }
+            }
+            tempChecked.Clear();
+        }
+
+        private bool IsRemoveXmlStructure()
         {
             return true;
         }
