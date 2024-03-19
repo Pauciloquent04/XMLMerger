@@ -46,7 +46,7 @@
                                         </i:EventTrigger>
                                     </i:Interaction.Triggers>
                                 </CheckBox>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
