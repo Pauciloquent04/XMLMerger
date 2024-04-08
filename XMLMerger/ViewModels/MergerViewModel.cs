@@ -15,6 +15,7 @@ using System.Xml.Linq;
 using XMLMerger.Commands;
 using XMLMerger.Models;
 using System.Configuration;
+using System.Runtime.Remoting.Contexts;
 
 namespace XMLMerger.ViewModels
 {
@@ -33,6 +34,7 @@ namespace XMLMerger.ViewModels
         public ObservableCollection<string> Operations { get; set; }
         public ObservableCollection<Project> ToProjectsCollection { get; set; }
         public ObservableCollection<XmlTags> XmlStructureCollection { get; set; }
+        public ObservableCollection<XMLFile> RestoreCollection { get; set; }
 
         private DB selectedFromDB;
         public DB SelectedFromDB
@@ -136,16 +138,16 @@ namespace XMLMerger.ViewModels
             }
         }
 
-        //private Project selectedToProject;
-        //public Project SelectedToProject
-        //{
-        //    get { return selectedToProject; }
-        //    set
-        //    {
-        //        selectedToProject = value;
-        //        OnPropertyChanged(nameof(SelectedToProject));
-        //    }
-        //}
+        private XMLFile selectedRestoreFile;
+        public XMLFile SelectedRestoreFile
+        {
+            get { return selectedRestoreFile; }
+            set
+            {
+                selectedRestoreFile = value;
+                OnPropertyChanged(nameof(SelectedRestoreFile));
+            }
+        }
 
         public RelayCommand ApplyChangesCommand { get; set; }
         public RelayCommand OnCheckedToProjectCommand { get; }
@@ -166,12 +168,14 @@ namespace XMLMerger.ViewModels
             ToProjects = new ObservableCollection<Project>();
 
             Operations = new ObservableCollection<string>();
-
+            
             ToProjectsCollection = new ObservableCollection<Project>();
             XmlStructureCollection = new ObservableCollection<XmlTags>();
 
             ApplyChangesCommand = new RelayCommand(e => ApplyChanges(), e => IsApplyChanges());
-
+            
+            RestoreCollection = new ObservableCollection<XMLFile>();
+            
             OnCheckedToProjectCommand = new RelayCommand(m => AddToProjects(), m => IsAddToProjects());
             OnUncheckedToProjectCommand = new RelayCommand(m => RemoveToProjects(), m => IsRemoveToProjects());
 
@@ -185,6 +189,10 @@ namespace XMLMerger.ViewModels
                 FromDatabases.Add(new DB { Name = Path.GetFileName(directory) });
                 ToDatabases.Add(new DB { Name = Path.GetFileName(directory) });
             }
+            Operations.Add("Replace");
+            Operations.Add("Add");
+            Operations.Add("Update");
+            Operations.Add("Restore");
 
         }
 
@@ -202,8 +210,15 @@ namespace XMLMerger.ViewModels
             {
 
             }
-            LoadXMLFiles();
+            else if (SelectedOperation == "Restore")
+            {
+                RestoreXMLFile();
+            }
             ShowLogMessageBox();
+            SelectedFromDB = null;
+            SelectedToDB = null;
+            SelectedOperation = null;
+            ToProjectsCollection.Clear();
         }
 
         private void ShowLogMessageBox()
@@ -216,7 +231,7 @@ namespace XMLMerger.ViewModels
 
                 if (File.Exists(logFilePath))
                 {
-                    string logText = "Operation executed successfully!!!";
+                    string logText = $"Operation '{SelectedOperation}' executed successfully!!!";
 
                     MessageBoxResult result = MessageBox.Show(logText, "Log Information", MessageBoxButton.OKCancel, MessageBoxImage.Information);
 
@@ -234,13 +249,18 @@ namespace XMLMerger.ViewModels
 
         private bool IsApplyChanges()
         {
-            if (SelectedOperation != null && ToProjectsCollection != null && SelectedOperation != "Add")
+            if (SelectedOperation == "Replace" && XMLStructure.Count != 0 && ToProjectsCollection.Count != 0)
             {
                 return true;
             }
 
             else if(SelectedOperation == "Add" && ToProjectsCollection.Count != 0 
                 && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)))
+            {
+                return true;
+            }
+
+            else if (SelectedOperation == "Restore" && SelectedRestoreFile != null)
             {
                 return true;
             }
@@ -260,9 +280,16 @@ namespace XMLMerger.ViewModels
 
                 if (File.Exists(fromFilePath))
                 {
-                    File.Copy(fromFilePath, toFilePath);
+                    if (!File.Exists(toFilePath))
+                    {
+                        File.Copy(fromFilePath, toFilePath);
 
-                    LogWriter(fromFilePath, toFilePath, null, null, null , currentToProject.Name);
+                        LogWriter(fromFilePath, toFilePath, null, null, null , currentToProject.Name);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"File  '{SelectedXMLFile.FileName}' already present at {currentToProject.Name}. Can't overwrite the file.", "File exists", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
             }
         }
@@ -288,50 +315,59 @@ namespace XMLMerger.ViewModels
                                 XDocument fromXml = XDocument.Load(fromFilePath);
                                 XDocument toXml = XDocument.Load(toFilePath);
 
-                                foreach (var currentXmlTag in XmlStructureCollection)
+                                if (XNode.DeepEquals(fromXml, toXml))
                                 {
-                                    List<string> addedIds = new List<string>();
+                                    MessageBox.Show($"File '{SelectedXMLFile.FileName}' at both '{SelectedFromProject.Name}' and '{currentToProject.Name}' are same. Nothing to add at destination file.");
+                                }
 
-                                    string[] structure = currentXmlTag.Name.Split('>').Select(e => e.Trim()).ToArray();
-                                    int structureLength = structure.Length;
-                                    string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
-
-                                    var fromElements = fromXml.Descendants(selectedStructure);
-                                    var toElements = toXml.Descendants(selectedStructure);
-
-                                    foreach (var fromElement in fromElements)
+                                else
+                                {
+                                    foreach (var currentXmlTag in XmlStructureCollection)
                                     {
-                                        foreach (var toElement in toElements)
-                                        {
-                                            if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
-                                            {
-                                                var addedElements = from element in fromElement.Descendants(structure[structureLength - 1])
-                                                                    where !toElement.Descendants(structure[structureLength - 1])
-                                                                    .Any(x => x.Attribute("id")?.Value == element.Attribute("id")?.Value)
-                                                                    select element;
+                                        List<string> addedIds = new List<string>();
 
-                                                foreach (var addedElement in addedElements)
+                                        string[] structure = currentXmlTag.Name.Split('>').Select(e => e.Trim()).ToArray();
+                                        int structureLength = structure.Length;
+                                        string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                                        var fromElements = fromXml.Descendants(selectedStructure);
+                                        var toElements = toXml.Descendants(selectedStructure);
+
+                                        foreach (var fromElement in fromElements)
+                                        {
+                                            foreach (var toElement in toElements)
+                                            {
+                                                if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
                                                 {
-                                                    string addedId = addedElement.Attribute("id")?.Value;
-                                                    if (!string.IsNullOrEmpty(addedId))
+                                                    var addedElements = from element in fromElement.Descendants(structure[structureLength - 1])
+                                                                        where !toElement.Descendants(structure[structureLength - 1])
+                                                                        .Any(x => x.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                                                        select element;
+
+                                                    foreach (var addedElement in addedElements)
                                                     {
-                                                        addedIds.Add(addedId);
+                                                        string addedId = addedElement.Attribute("id")?.Value;
+                                                        if (!string.IsNullOrEmpty(addedId))
+                                                        {
+                                                            addedIds.Add(addedId);
+                                                        }
+                                                        toElement.Add(addedElement);
                                                     }
-                                                    toElement.Add(addedElement);
+
                                                 }
 
                                             }
 
                                         }
 
-                                    }
+                                        string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
+                                        toXml.Save(toFilePath);
 
-                                    string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
-                                    toXml.Save(toFilePath);
+                                        LogWriter(fromFilePath, toFilePath, bkFileName, addedIds, currentXmlTag.Name, currentToProject.Name);
 
-                                    LogWriter(fromFilePath, toFilePath, bkFileName, addedIds, currentXmlTag.Name, currentToProject.Name);
+                                    }   
 
-                                }   
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -349,6 +385,74 @@ namespace XMLMerger.ViewModels
                     }
                 }
             }
+        }
+
+        private void RestoreXMLFile()
+        {
+            foreach (var currentToProject in ToProjectsCollection)
+            {
+                string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, currentToProject.Name);
+                    
+                if (Directory.Exists(Path.Combine(projectPath, "Log Backup")))
+                {
+                    string BackupFileIncludeValue = ConfigurationManager.AppSettings["BackupFileInclude"];
+                    List<FileInfo> files = new List<FileInfo>();
+
+                    foreach (var file in Directory.GetFiles(Path.Combine(projectPath, "Log Backup"), $"{Path.GetFileNameWithoutExtension(SelectedRestoreFile.FileName)}{BackupFileIncludeValue}*.xml"))
+                    {
+                        files.Add(new FileInfo(file));
+                    }
+                    files = files.OrderByDescending(x => x.LastWriteTime).ToList();
+
+                    MessageBoxResult result = MessageBox.Show("Updates may get lost from file. Press 'OK' to restore.", 
+                        "Restore File", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.OK)
+                    {
+                        RestoreLogWriter(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName), SelectedRestoreFile.FileName, currentToProject.Name);
+                        File.Delete(Path.Combine(projectPath, SelectedRestoreFile.FileName));
+
+                        File.Move(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName));
+
+                        //File.Delete(files[0].FullName);
+                        files.Clear();
+
+                    }
+
+
+                }
+
+            }
+        }
+
+        private void RestoreLogWriter(string sourceFilePath, string destinationFilePath, string fileName, string currentToProject)
+        {
+            string logFolderPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, currentToProject, "Log_Folder");
+            string logFilePath;
+            if (!Directory.Exists(logFolderPath))
+            {
+                Directory.CreateDirectory(logFolderPath);
+                logFilePath = Path.Combine(logFolderPath, "log.txt");
+                File.WriteAllText(logFilePath, "Log Recorded:\n\n");
+
+            }
+            else
+            {
+                logFilePath = Path.Combine(logFolderPath, "log.txt");
+            }
+
+            StringBuilder sbReportLogFile = new StringBuilder();
+
+            sbReportLogFile.AppendLine("");
+            sbReportLogFile.AppendLine($"Source File: {sourceFilePath}");
+            sbReportLogFile.AppendLine($"Destination File: {destinationFilePath}");
+            sbReportLogFile.AppendLine($"File: {fileName}");
+            sbReportLogFile.AppendLine($"User: {Environment.UserName}");
+            sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
+            sbReportLogFile.AppendLine("Operation: Restore");
+            sbReportLogFile.AppendLine("Remark: Backup File is restored replacing original file.");
+            File.AppendAllText(logFilePath, sbReportLogFile.ToString());
+
         }
 
         private void LogWriter(string fromFilePath, string toFilePath, string backupFile = null, List<string> addedIds = null, string currentTag = null, string currentToProject = null)
@@ -375,8 +479,6 @@ namespace XMLMerger.ViewModels
             sbReportLogFile.AppendLine($"User: {Environment.UserName}");
             sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
             sbReportLogFile.AppendLine($"Structure: {currentTag}");
-
-
 
             switch (SelectedOperation)
             {
@@ -471,16 +573,31 @@ namespace XMLMerger.ViewModels
         }
 
 
+        
         private void LoadFromSites()
         {
             FromSites.Clear();
             if (SelectedFromDB != null)
             {
-                string dbPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj");
+                string DBPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj");
 
-                foreach (var directory in Directory.GetDirectories(dbPath))
+                foreach (var directory in Directory.GetDirectories(DBPath))
                 {
                     FromSites.Add(new Site { Name = Path.GetFileName(directory) });
+                }
+            }
+        }
+
+        private void LoadToSites()
+        {
+            ToSites.Clear();
+            if (SelectedToDB != null)
+            {
+                string DBPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj");
+
+                foreach (var directory in Directory.GetDirectories(DBPath))
+                {
+                    ToSites.Add(new Site { Name = Path.GetFileName(directory) });
                 }
             }
         }
@@ -518,7 +635,6 @@ namespace XMLMerger.ViewModels
             if (SelectedXMLFile == null)
             {
                 XMLStructure.Clear();
-                Operations.Clear();
                 return;
             }
             try
@@ -530,7 +646,6 @@ namespace XMLMerger.ViewModels
             {
 
                 XMLStructure.Clear();
-                Operations.Clear();
                 MessageBox.Show(ex.Message);
             }
 
@@ -540,12 +655,8 @@ namespace XMLMerger.ViewModels
         private void LoadXmlStructure()
         {
             XMLStructure.Clear();
-            Operations.Clear();
             if (SelectedXMLFile != null)
             {
-                Operations.Add("Replace");
-                Operations.Add("Add");
-                Operations.Add("Update");
                 XMLStructure.Add(new XmlTags { Name = "...Blank..."});
 
                 string filePath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name, SelectedXMLFile.FileName);
@@ -578,20 +689,6 @@ namespace XMLMerger.ViewModels
             }
         }
 
-        private void LoadToSites()
-        {
-            ToSites.Clear();
-            if (SelectedToDB != null)
-            {
-                string dbPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj");
-
-                foreach (var directory in Directory.GetDirectories(dbPath))
-                {
-                    ToSites.Add(new Site { Name = Path.GetFileName(directory) });
-                }
-            }
-        }
-
         private void LoadToProjects()
         {
             ToProjects.Clear();
@@ -613,9 +710,11 @@ namespace XMLMerger.ViewModels
                 if (project.IsChecked && !ToProjectsCollection.Contains(project))
                 {
                     ToProjectsCollection.Add(project);
+                    UpdateRestoreCollectionOnAddProject(project);
                 }
             }
         }
+
 
         private bool IsAddToProjects()
         {
@@ -630,6 +729,7 @@ namespace XMLMerger.ViewModels
                 if (!project.IsChecked)
                 {
                     ToProjectsCollection.Remove(project);
+                    UpdateRestoreCollectionOnRemoveProject();
                 }
             }
             tempChecked.Clear();
@@ -672,6 +772,87 @@ namespace XMLMerger.ViewModels
         private bool IsRemoveXmlStructure()
         {
             return true;
+        }
+        private void UpdateRestoreCollectionOnAddProject(Project project)
+        {
+            string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, project.Name);
+
+            if (ToProjectsCollection.Count == 0)
+            {
+                RestoreCollection.Clear();
+            }
+            else if (ToProjectsCollection.Count == 1)
+            {
+                foreach (var file in Directory.GetFiles(projectPath, "*.xml"))
+                {
+                    if (!RestoreCollection.Any(x => x.FileName.Equals(Path.GetFileName(file))))
+                    {
+                        RestoreCollection.Add(new XMLFile { FileName = Path.GetFileName(file) });
+                    }
+                }
+            }
+            else
+            {
+                List<XMLFile> temp = new List<XMLFile>();
+                foreach (var file in Directory.GetFiles(projectPath, "*.xml"))
+                {
+                    temp.Add(new XMLFile { FileName = Path.GetFileName(file) });
+                }
+                foreach (var file in RestoreCollection.ToList())
+                {
+                    if (!temp.Any(x => x.FileName.Equals(file.FileName)))
+                    {
+                        RestoreCollection.Remove(file);
+                    }
+                }
+            }
+        }
+        private void UpdateRestoreCollectionOnRemoveProject()
+        {
+            if (ToProjectsCollection.Count == 0)
+            {
+                RestoreCollection.Clear();
+            }
+            else if (ToProjectsCollection.Count == 1)
+            {
+                string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, ToProjectsCollection.ElementAt(0).Name);
+                foreach (var file in Directory.GetFiles(projectPath, "*.xml"))
+                {
+                    if (!RestoreCollection.Any(x => x.FileName.Equals(Path.GetFileName(file))))
+                    {
+                        RestoreCollection.Add(new XMLFile { FileName = Path.GetFileName(file) });
+                    }
+                }
+            }
+            else
+            {
+                RestoreCollection.Clear();
+                List<string> fileName = new List<string>();
+                List<string> temp = new List<string>();
+                string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name);
+                foreach (var file in Directory.GetFiles(Path.Combine(projectPath, ToProjectsCollection.ElementAt(0).Name), "*.xml"))
+                {
+                    fileName.Add(Path.GetFileName(file));
+                }
+                foreach (var project in ToProjectsCollection.ToList())
+                {
+
+                    foreach (string file in fileName)
+                    {
+                        if (temp.Contains(file)) continue;
+                        if (!Directory.GetFiles(Path.Combine(projectPath, project.Name), "*.xml").Any(x => Path.GetFileName(x).Equals(file)))
+                        {
+                            temp.Add(file);
+                        }
+                    }
+                }
+                foreach (string file in fileName)
+                {
+                    if (temp.Contains(file)) continue;
+                    RestoreCollection.Add(new XMLFile { FileName= file });
+                }
+
+            }
         }
 
     }
