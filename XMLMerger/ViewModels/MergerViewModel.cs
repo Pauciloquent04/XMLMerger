@@ -218,6 +218,7 @@ namespace XMLMerger.ViewModels
             SelectedFromDB = null;
             SelectedToDB = null;
             SelectedOperation = null;
+            SelectedRestoreFile = null;
             ToProjectsCollection.Clear();
         }
 
@@ -325,6 +326,7 @@ namespace XMLMerger.ViewModels
                                     foreach (var currentXmlTag in XmlStructureCollection)
                                     {
                                         List<string> addedIds = new List<string>();
+                                        bool isAdded = false;
 
                                         string[] structure = currentXmlTag.Name.Split('>').Select(e => e.Trim()).ToArray();
                                         int structureLength = structure.Length;
@@ -352,6 +354,7 @@ namespace XMLMerger.ViewModels
                                                             addedIds.Add(addedId);
                                                         }
                                                         toElement.Add(addedElement);
+                                                        isAdded = true;
                                                     }
 
                                                 }
@@ -360,10 +363,17 @@ namespace XMLMerger.ViewModels
 
                                         }
 
-                                        string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
-                                        toXml.Save(toFilePath);
+                                        if (isAdded)
+                                        {
+                                            string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
+                                            toXml.Save(toFilePath);
 
-                                        LogWriter(fromFilePath, toFilePath, bkFileName, addedIds, currentXmlTag.Name, currentToProject.Name);
+                                            LogWriter(fromFilePath, toFilePath, bkFileName, addedIds, currentXmlTag.Name, currentToProject.Name);
+                                        }
+                                        else
+                                        {
+                                            MessageBox.Show($"There is nothing to add on file '{SelectedXMLFile.FileName}' in '{currentToProject.Name}'");
+                                        }
 
                                     }   
 
@@ -402,21 +412,30 @@ namespace XMLMerger.ViewModels
                     {
                         files.Add(new FileInfo(file));
                     }
-                    files = files.OrderByDescending(x => x.LastWriteTime).ToList();
 
-                    MessageBoxResult result = MessageBox.Show("Updates may get lost from file. Press 'OK' to restore.", 
-                        "Restore File", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
-
-                    if (result == MessageBoxResult.OK)
+                    if (files.Count > 0)
                     {
-                        RestoreLogWriter(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName), SelectedRestoreFile.FileName, currentToProject.Name);
-                        File.Delete(Path.Combine(projectPath, SelectedRestoreFile.FileName));
+                        files = files.OrderByDescending(x => x.LastWriteTime).ToList();
 
-                        File.Move(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName));
+                        MessageBoxResult result = MessageBox.Show("Updates may get lost from file. Press 'OK' to restore.", 
+                            "Restore File", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
 
-                        //File.Delete(files[0].FullName);
-                        files.Clear();
+                        if (result == MessageBoxResult.OK)
+                        {
+                            RestoreLogWriter(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName), SelectedRestoreFile.FileName, currentToProject.Name);
+                            File.Delete(Path.Combine(projectPath, SelectedRestoreFile.FileName));
 
+                            File.Move(files[0].FullName, Path.Combine(projectPath, SelectedRestoreFile.FileName));
+
+                            //File.Delete(files[0].FullName);
+                            files.Clear();
+
+                        }
+
+                    }
+                    else
+                    {
+                        MessageBox.Show($"There are no backup file for '{SelectedRestoreFile}' in '{currentToProject.Name}'");
                     }
 
 
@@ -668,6 +687,7 @@ namespace XMLMerger.ViewModels
                         XDocument xmlDoc = XDocument.Load(filePath);
 
                         TraverseXmlStructure(xmlDoc.Root, "");
+                        XmlStructureCollection.Clear();
                     }
                     catch (Exception ex)
                     {

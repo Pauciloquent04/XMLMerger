@@ -30,7 +30,9 @@
             <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
 
                 <TextBlock Text="From DB" />
-                <ComboBox Name="fromDb" Width="150" ItemsSource="{Binding FromDatabases}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedFromDB}"/>
+                <ComboBox Name="fromDb" Width="150" ItemsSource="{Binding FromDatabases}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedFromDB}">
+                    
+                </ComboBox>
                 <TextBlock Text="From Site" Margin="0 10 0 0" />
                 <ComboBox Name="fromSite" Width="150" ItemsSource="{Binding FromSites}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedFromSite}" />
                 <TextBlock Text="Source Projects" Margin="0 10 0 0" />
