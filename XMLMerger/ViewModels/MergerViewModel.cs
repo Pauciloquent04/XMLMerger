@@ -152,6 +152,8 @@ namespace XMLMerger.ViewModels
         public RelayCommand ApplyChangesCommand { get; set; }
         public RelayCommand OnCheckedToProjectCommand { get; }
         public RelayCommand OnUncheckedToProjectCommand { get; }
+        public RelayCommand OnCheckedIdCommand { get; }
+        public RelayCommand OnUncheckedIdCommand { get; }
         public RelayCommand OnCheckedXmlStructureCommand { get; }
         public RelayCommand OnUncheckedXmlStructureCommand { get; }
 
@@ -175,9 +177,9 @@ namespace XMLMerger.ViewModels
             ApplyChangesCommand = new RelayCommand(e => ApplyChanges(), e => IsApplyChanges());
             
             RestoreCollection = new ObservableCollection<XMLFile>();
-            
+
             OnCheckedToProjectCommand = new RelayCommand(m => AddToProjects(), m => IsAddToProjects());
-            OnUncheckedToProjectCommand = new RelayCommand(m => RemoveToProjects(), m => IsRemoveToProjects());
+            OnUncheckedToProjectCommand = new RelayCommand(m => RemoveToProjects(), m => IsRemoveToProjects()); 
 
             OnCheckedXmlStructureCommand = new RelayCommand(m => AddXmlStructure(), m => IsAddXmlStructure());
             OnUncheckedXmlStructureCommand = new RelayCommand(m => RemoveXmlStructure(), m => IsRemoveXmlStructure());
@@ -193,6 +195,7 @@ namespace XMLMerger.ViewModels
             Operations.Add("Add");
             Operations.Add("Update");
             Operations.Add("Restore");
+            Operations.Add("Remove");
 
         }
 
@@ -208,7 +211,7 @@ namespace XMLMerger.ViewModels
             }
             else if (SelectedOperation == "Update")
             {
-
+                UpdateXMLFile();
             }
             else if (SelectedOperation == "Restore")
             {
@@ -255,7 +258,7 @@ namespace XMLMerger.ViewModels
                 return true;
             }
 
-            else if(SelectedOperation == "Add" && ToProjectsCollection.Count != 0 
+            else if((SelectedOperation == "Add" || SelectedOperation == "Update") && ToProjectsCollection.Count != 0 
                 && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)))
             {
                 return true;
@@ -335,6 +338,7 @@ namespace XMLMerger.ViewModels
                                         var fromElements = fromXml.Descendants(selectedStructure);
                                         var toElements = toXml.Descendants(selectedStructure);
 
+
                                         foreach (var fromElement in fromElements)
                                         {
                                             foreach (var toElement in toElements)
@@ -396,6 +400,115 @@ namespace XMLMerger.ViewModels
                 }
             }
         }
+
+        private void UpdateXMLFile()
+        {
+            foreach (var currentToProject in ToProjectsCollection)
+            {
+                if (currentToProject.Name != null && SelectedXMLFile != null)
+                {
+                    string fromProjectPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name);
+                    string toProjectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, currentToProject.Name);
+
+                    string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
+                    string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
+
+                    if (File.Exists(fromFilePath))
+                    {
+                        if (File.Exists(toFilePath))
+                        {
+                            try
+                            {
+                                XDocument fromXml = XDocument.Load(fromFilePath);
+                                XDocument toXml = XDocument.Load(toFilePath);
+                                if (XNode.DeepEquals(fromXml, toXml))
+                                {
+                                    MessageBox.Show($"File '{SelectedXMLFile.FileName}' at both '{SelectedFromProject.Name}' and '{currentToProject.Name}' are same. Nothing to add at destination file.");
+                                }
+
+                                else
+                                {
+                                    foreach (var currentXmlTag in XmlStructureCollection)
+                                    {
+                                        List<string> updatedIds = new List<string>();
+                                        bool isUpdated = false;
+
+                                        string[] structure = currentXmlTag.Name.Split('>').Select(e => e.Trim()).ToArray();
+                                        int structureLength = structure.Length;
+                                        string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                                        var fromElements = fromXml.Descendants(selectedStructure);
+                                        var toElements = toXml.Descendants(selectedStructure);
+
+                                        foreach (var fromElement in fromElements)
+                                        {
+                                            foreach (var toElement in toElements)
+                                            {
+                                                if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
+                                                {
+                                                    if (XNode.DeepEquals(fromElement, toElement))
+                                                    {
+                                                        break;
+                                                    }
+                                                    var curToElement = toElement.Descendants(structure[structureLength - 1]);
+                                                    var updatedElements = from element in fromElement.Descendants(structure[structureLength - 1])
+                                                                        where curToElement.Any(x => x.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                                                        select element;
+
+                                                    foreach (var updatedElement in updatedElements)
+                                                    {
+                                                        foreach (var element in curToElement)
+                                                        {
+                                                            if (updatedElement.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                                            {
+                                                                if (XNode.DeepEquals(updatedElement, element))
+                                                                {
+                                                                    break;
+                                                                }
+                                                                string updatedId = updatedElement.Attribute("id")?.Value;
+                                                                if (!string.IsNullOrEmpty(updatedId))
+                                                                {
+                                                                    updatedIds.Add(updatedId);
+                                                                }
+                                                                element.ReplaceWith(updatedElement);
+                                                                isUpdated = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                        
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                        if (isUpdated)
+                                        {
+                                            string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
+                                            toXml.Save(toFilePath);
+
+                                            LogWriter(fromFilePath, toFilePath, bkFileName, updatedIds, currentXmlTag.Name, currentToProject.Name);
+                                        }
+                                        else
+                                        {
+                                            MessageBox.Show($"There is nothing to update on file '{SelectedXMLFile.FileName}' in '{currentToProject.Name}'");
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        
 
         private void RestoreXMLFile()
         {
@@ -527,8 +640,22 @@ namespace XMLMerger.ViewModels
                     break;
                 case "Update":
                     sbReportLogFile.AppendLine($"Operation: Update");
-                    sbReportLogFile.AppendLine($"Backup File: To be give");
-                    sbReportLogFile.AppendLine($"Remark: Update the element.");
+                    if (backupFile == null)
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: -");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: {backupFile}");
+                    }
+                    if (addedIds == null)
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Full file added.");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Updated Ids: {string.Join(", ", addedIds)}");
+                    }
                     break;
             }
 
@@ -767,6 +894,7 @@ namespace XMLMerger.ViewModels
                 if (xmlTag.IsChecked && !XmlStructureCollection.Contains(xmlTag))
                 {
                     XmlStructureCollection.Add(xmlTag);
+                    
                 }
             }
         }
@@ -793,6 +921,7 @@ namespace XMLMerger.ViewModels
         {
             return true;
         }
+
         private void UpdateRestoreCollectionOnAddProject(Project project)
         {
             string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, project.Name);
