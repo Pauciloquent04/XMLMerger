@@ -238,6 +238,19 @@ namespace XMLMerger.ViewModels
             {
                 RemoveXMLFile();
             }
+            else if (SelectedOperation == "Add with specific attribute")
+            {
+                AddWithId();
+            }
+            else if (SelectedOperation == "Update with specific attribute")
+            {
+                UpdateWithId();
+            }
+            else if (SelectedOperation == "Remove with specific attribute")
+            {
+                RemoveWithId();
+                EnteredAttributeValue = null;
+            }
             ShowLogMessageBox();
             SelectedFromDB = null;
             SelectedToDB = null;
@@ -279,18 +292,29 @@ namespace XMLMerger.ViewModels
                 return true;
             }
 
-            else if (selectedOperation == "Remove" && XmlStructureCollection.Count != 0 && ToProjectsCollection.Count == 1)
+            else if (SelectedOperation == "Remove" && XmlStructureCollection.Count != 0 && ToProjectsCollection.Count == 1)
             {
                 return true;
             }
 
             else if((SelectedOperation == "Add" || SelectedOperation == "Update") && ToProjectsCollection.Count != 0 
-                && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)))
+                && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)) && XmlStructureCollection.Count != 0)
             {
                 return true;
             }
 
             else if (SelectedOperation == "Restore" && SelectedRestoreFile != null)
+            {
+                return true;
+            }
+            else if ((SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute")
+                && ToProjectsCollection.Count == 1 && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)) && XmlStructureCollection.Count != 0
+                && !String.IsNullOrEmpty(EnteredAttributeValue))
+            {
+                return true;
+            }
+            else if (SelectedOperation == "Remove with specific attribute" && XmlStructureCollection.Count != 0 
+                && ToProjectsCollection.Count == 1 && !String.IsNullOrEmpty(EnteredAttributeValue))
             {
                 return true;
             }
@@ -429,7 +453,88 @@ namespace XMLMerger.ViewModels
 
         private void AddWithId()
         {
+            string fromProjectPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name);
+            string toProjectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, ToProjectsCollection.First().Name);
 
+            string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
+            string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
+
+            if (File.Exists(fromFilePath))
+            {
+                if (File.Exists(toFilePath))
+                {
+                    try
+                    {
+                        XDocument fromXml = XDocument.Load(fromFilePath);
+                        XDocument toXml = XDocument.Load(toFilePath);
+
+                        if (XNode.DeepEquals(fromXml, toXml))
+                        {
+                            MessageBox.Show($"File '{SelectedXMLFile.FileName}' at both '{SelectedFromProject.Name}' and '{ToProjectsCollection.First().Name}' are same. Nothing to add at destination file.");
+                        }
+
+                        else
+                        {
+                            
+                            List<string> addedIds = new List<string>();
+                            bool isAdded = false;
+
+                            string[] structure = XmlStructureCollection.First().Name.Split('>').Select(e => e.Trim()).ToArray();
+                            int structureLength = structure.Length;
+                            string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                            string[] ids = EnteredAttributeValue.Split(',').Select(e => e.Trim()).ToArray();
+
+                            var fromElements = fromXml.Descendants(selectedStructure);
+                            var toElements = toXml.Descendants(selectedStructure);
+
+                            foreach (var fromElement in fromElements)
+                            {
+                                foreach (var toElement in toElements)
+                                {
+                                    if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
+                                    {
+                                        var addedElements = from element in fromElement.Descendants(structure[structureLength - 1])
+                                                            where ids.Any(x => x == element.Attribute("id")?.Value)
+                                                            select element;
+
+                                        foreach (var addedElement in addedElements)
+                                        {
+                                            string addedId = addedElement.Attribute("id")?.Value;
+                                            if (!string.IsNullOrEmpty(addedId))
+                                            {
+                                                addedIds.Add(addedId);
+                                            }
+                                            toElement.Add(addedElement);
+                                            isAdded = true;
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+                            if (isAdded)
+                            {
+                                string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
+                                toXml.Save(toFilePath);
+
+                                LogWriter(fromFilePath, toFilePath, bkFileName, addedIds, XmlStructureCollection.First().Name, ToProjectsCollection.First().Name);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"There is nothing to add on file '{SelectedXMLFile.FileName}' in '{ToProjectsCollection.First().Name}'");
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
+                }
+            }
         }
 
         private void UpdateXMLFile()
@@ -541,7 +646,107 @@ namespace XMLMerger.ViewModels
 
         private void UpdateWithId()
         {
+            string fromProjectPath = Path.Combine("C:/XMLMerger", SelectedFromDB.Name, "SPProj", SelectedFromSite.Name, SelectedFromProject.Name);
+            string toProjectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, ToProjectsCollection.First().Name);
 
+            string fromFilePath = Path.Combine(fromProjectPath, SelectedXMLFile.FileName);
+            string toFilePath = Path.Combine(toProjectPath, SelectedXMLFile.FileName);
+
+            if (File.Exists(fromFilePath))
+            {
+                if (File.Exists(toFilePath))
+                {
+                    try
+                    {
+                        XDocument fromXml = XDocument.Load(fromFilePath);
+                        XDocument toXml = XDocument.Load(toFilePath);
+
+                        if (XNode.DeepEquals(fromXml, toXml))
+                        {
+                            MessageBox.Show($"File '{SelectedXMLFile.FileName}' at both '{SelectedFromProject.Name}' and '{ToProjectsCollection.First().Name}' are same. Nothing to add at destination file.");
+                        }
+
+                        else
+                        {
+
+                            List<string> updatedIds = new List<string>();
+                            bool isUpdated = false;
+
+                            string[] structure = XmlStructureCollection.First().Name.Split('>').Select(e => e.Trim()).ToArray();
+                            int structureLength = structure.Length;
+                            string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                            string[] ids = EnteredAttributeValue.Split(',').Select(e => e.Trim()).ToArray();
+
+                            var fromElements = fromXml.Descendants(selectedStructure);
+                            var toElements = toXml.Descendants(selectedStructure);
+
+                            foreach (var fromElement in fromElements)
+                            {
+                                foreach (var toElement in toElements)
+                                {
+                                    if (toElement.Attribute("id")?.Value == fromElement.Attribute("id")?.Value)
+                                    {
+                                        if (XNode.DeepEquals(fromElement, toElement))
+                                        {
+                                            break;
+                                        }
+                                        var curToElement = from element in toElement.Descendants(structure[structureLength - 1])
+                                                           where ids.Any(x => x == element.Attribute("id")?.Value)
+                                                           select element;
+                                        var updatedElements = from element in fromElement.Descendants(structure[structureLength - 1])
+                                                              where curToElement.Any(x => x.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                                              select element;
+
+                                        foreach (var updatedElement in updatedElements)
+                                        {
+                                            foreach (var element in curToElement)
+                                            {
+                                                if (updatedElement.Attribute("id")?.Value == element.Attribute("id")?.Value)
+                                                {
+                                                    if (XNode.DeepEquals(updatedElement, element))
+                                                    {
+                                                        break;
+                                                    }
+                                                    string updatedId = updatedElement.Attribute("id")?.Value;
+                                                    if (!string.IsNullOrEmpty(updatedId))
+                                                    {
+                                                        updatedIds.Add(updatedId);
+                                                    }
+                                                    element.ReplaceWith(updatedElement);
+                                                    isUpdated = true;
+                                                    break;
+                                                }
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+                            if (isUpdated)
+                            {
+                                string bkFileName = CreateAndReturnBackupFileName(toProjectPath, toFilePath);
+                                toXml.Save(toFilePath);
+
+                                LogWriter(fromFilePath, toFilePath, bkFileName, updatedIds, XmlStructureCollection.First().Name, ToProjectsCollection.First().Name);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"There is nothing to update on file '{SelectedXMLFile.FileName}' in '{ToProjectsCollection.First().Name}'");
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
+                }
+            }
         }
 
         private void RemoveXMLFile()
@@ -617,7 +822,75 @@ namespace XMLMerger.ViewModels
 
         private void RemoveWithId()
         {
+            if (ToProjectsCollection.First().Name != null && SelectedRestoreFile != null)
+            {
+                string projectPath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, ToProjectsCollection.First().Name);
 
+                string filePath = Path.Combine(projectPath, SelectedRestoreFile.FileName);
+
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        XDocument xml = XDocument.Load(filePath);
+
+                        foreach (var currentXmlTag in XmlStructureCollection)
+                        {
+                            List<string> removedIds = new List<string>();
+                            bool isRemoved = false;
+
+                            string[] structure = currentXmlTag.Name.Split('>').Select(e => e.Trim()).ToArray();
+                            int structureLength = structure.Length;
+                            string selectedStructure = structure.Length > 1 ? structure[structureLength - 2] : structure[0];
+
+                            string[] ids = EnteredAttributeValue.Split(',').Select(e => e.Trim()).ToArray();
+
+                            var elements = xml.Descendants(selectedStructure);
+
+                            foreach (var element in elements)
+                            {
+                                var removeElements = from ele in elements.Descendants(structure[structureLength - 1])
+                                                     where ids.Any(x => x == ele.Attribute("id").Value)
+                                                     select ele;
+                                if (removeElements != null)
+                                {
+                                    foreach (var removeElement in removeElements.ToList())
+                                    {
+                                        var temp = removeElement;
+                                        string removedId = $"{removeElement.Attribute("id")?.Value}";
+                                        if (!string.IsNullOrEmpty(removedId))
+                                        {
+                                            removedIds.Add(removedId);
+                                        }
+                                        temp.Remove();
+                                        isRemoved = true;
+                                    }
+                                }
+                            }
+
+
+
+
+                            if (isRemoved)
+                            {
+                                string bkFileName = CreateAndReturnBackupFileName(projectPath, filePath);
+                                xml.Save(filePath);
+
+                                RemoveLogWriter(filePath, bkFileName, currentXmlTag.Name, removedIds);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"There is nothing to remove from file '{SelectedXMLFile.FileName}' in '{ToProjectsCollection.First().Name}'");
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
+                }
+            }
         }
 
         private void RestoreXMLFile()
@@ -720,7 +993,8 @@ namespace XMLMerger.ViewModels
             sbReportLogFile.AppendLine($"User: {Environment.UserName}");
             sbReportLogFile.AppendLine($"Date: {DateTime.Now}");
             sbReportLogFile.AppendLine($"Structure: {currentTag}");
-            sbReportLogFile.AppendLine("Operation: Remove");
+            if (SelectedOperation == "Remove") sbReportLogFile.AppendLine("Operation: Remove");
+            else sbReportLogFile.AppendLine("Operation: Remove with specific attribute.");
             if (backupFile == null)
             {
                 sbReportLogFile.AppendLine($"Backup File: -");
@@ -788,6 +1062,44 @@ namespace XMLMerger.ViewModels
                     break;
                 case "Update":
                     sbReportLogFile.AppendLine($"Operation: Update");
+                    if (backupFile == null)
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: -");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: {backupFile}");
+                    }
+                    if (addedIds == null)
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Full file added.");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Updated Ids: {string.Join(", ", addedIds)}");
+                    }
+                    break;
+                case "Add with specific attribute":
+                    sbReportLogFile.AppendLine($"Operation: Add with specific attribute");
+                    if (backupFile == null)
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: -");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Backup File: {backupFile}");
+                    }
+                    if (addedIds == null)
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Full file added.");
+                    }
+                    else
+                    {
+                        sbReportLogFile.AppendLine($"Remark: Added Ids: {string.Join(", ", addedIds)}");
+                    }
+                    break;
+                case "Update with specific attribute":
+                    sbReportLogFile.AppendLine($"Operation: Update with specific attribute");
                     if (backupFile == null)
                     {
                         sbReportLogFile.AppendLine($"Backup File: -");
@@ -926,7 +1238,7 @@ namespace XMLMerger.ViewModels
 
         private void ValidateXML()
         {
-            bool isRemove = SelectedOperation == "Remove";
+            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific attribute");
             if (SelectedXMLFile == null && !isRemove)
             {
                 XMLStructure.Clear();
@@ -966,7 +1278,8 @@ namespace XMLMerger.ViewModels
         private void LoadXmlStructure()
         {
             XMLStructure.Clear();
-            if (SelectedXMLFile != null  && selectedOperation != "Remove")
+            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific attribute");
+            if (SelectedXMLFile != null  && !isRemove)
             {
                 XMLStructure.Add(new XmlTags { Name = "...Blank..."});
 
@@ -987,7 +1300,7 @@ namespace XMLMerger.ViewModels
                     }
                 }
             }
-            else if (SelectedRestoreFile != null && SelectedOperation == "Remove")
+            else if (SelectedRestoreFile != null && isRemove)
             {
                 string filePath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name, ToProjectsCollection.First().Name, SelectedRestoreFile.FileName);
 
@@ -1026,7 +1339,10 @@ namespace XMLMerger.ViewModels
             ToProjects.Clear();
             ToProjectsCollection.Clear();
             RestoreCollection.Clear();
-            SelectedRestoreFile = null;
+            if (SelectedOperation == "Remove" && SelectedOperation == "Remove with specific attribute")
+            {
+                SelectedRestoreFile = null;
+            }
             if (SelectedToSite != null)
             {
                 string sitePath = Path.Combine("C:/XMLMerger", SelectedToDB.Name, "SPProj", SelectedToSite.Name);
@@ -1049,9 +1365,11 @@ namespace XMLMerger.ViewModels
                 }
                 
             }
-            if (ToProjectsCollection.Count > 1 && SelectedOperation == "Remove")
+            if (ToProjectsCollection.Count > 1 && 
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific attribute" || 
+                SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute"))
             {
-                MessageBox.Show($"Remove operation can't be performed on more than one project.\nPlease select only one project.");
+                MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one project.\nPlease select only one project.");
             }
         }
 
@@ -1072,9 +1390,11 @@ namespace XMLMerger.ViewModels
                     UpdateRestoreCollectionOnRemoveProject();
                 }
             }
-            if (ToProjectsCollection.Count > 1 && SelectedOperation == "Remove")
+            if (ToProjectsCollection.Count > 1 &&
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific attribute" ||
+                SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute"))
             {
-                MessageBox.Show($"Remove operation can't be performed on more than one project.\nPlease select only one project.");
+                MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one project.\nPlease select only one project.");
             }
             tempChecked.Clear();
         }

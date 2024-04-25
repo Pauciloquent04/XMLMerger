@@ -41,6 +41,9 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </ComboBox.Style>
@@ -55,6 +58,9 @@
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -73,6 +79,9 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </ComboBox.Style>
@@ -87,6 +96,9 @@
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -120,6 +132,9 @@
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -167,6 +182,9 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
@@ -181,6 +199,9 @@
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -197,6 +218,9 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
@@ -212,6 +236,9 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBox.Style>
@@ -223,6 +250,9 @@
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -252,6 +282,9 @@
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                    <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
