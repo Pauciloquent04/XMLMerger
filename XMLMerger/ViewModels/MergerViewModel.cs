@@ -112,6 +112,7 @@ namespace XMLMerger.ViewModels
                 OnPropertyChanged(nameof(SelectedOperation));
                 SelectedFromDB = null;
                 SelectedToDB = null;
+                EnteredAttributeValue = null;
                 ToProjectsCollection.Clear();
             }
         }
@@ -210,9 +211,9 @@ namespace XMLMerger.ViewModels
             Operations.Add("Update");
             Operations.Add("Restore");
             Operations.Add("Remove"); 
-            Operations.Add("Add with specific attribute");
-            Operations.Add("Update with specific attribute");
-            Operations.Add("Remove with specific attribute");
+            Operations.Add("Add with specific id");
+            Operations.Add("Update with specific id");
+            Operations.Add("Remove with specific id");
 
         }
 
@@ -238,15 +239,19 @@ namespace XMLMerger.ViewModels
             {
                 RemoveXMLFile();
             }
-            else if (SelectedOperation == "Add with specific attribute")
+            else if (SelectedOperation == "Add with specific id")
             {
                 AddWithId();
+                EnteredAttributeValue = null;
+
             }
-            else if (SelectedOperation == "Update with specific attribute")
+            else if (SelectedOperation == "Update with specific id")
             {
                 UpdateWithId();
+                EnteredAttributeValue = null;
+
             }
-            else if (SelectedOperation == "Remove with specific attribute")
+            else if (SelectedOperation == "Remove with specific id")
             {
                 RemoveWithId();
                 EnteredAttributeValue = null;
@@ -292,7 +297,7 @@ namespace XMLMerger.ViewModels
                 return true;
             }
 
-            else if (SelectedOperation == "Remove" && XmlStructureCollection.Count != 0 && ToProjectsCollection.Count == 1)
+            else if (SelectedOperation == "Remove" && XmlStructureCollection.Count == 1 && ToProjectsCollection.Count == 1)
             {
                 return true;
             }
@@ -307,13 +312,13 @@ namespace XMLMerger.ViewModels
             {
                 return true;
             }
-            else if ((SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute")
-                && ToProjectsCollection.Count == 1 && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)) && XmlStructureCollection.Count != 0
+            else if ((SelectedOperation == "Add with specific id" || SelectedOperation == "Update with specific id")
+                && ToProjectsCollection.Count == 1 && !ToProjectsCollection.Any(x => x.Name.Equals(SelectedFromProject)) && XmlStructureCollection.Count == 1
                 && !String.IsNullOrEmpty(EnteredAttributeValue))
             {
                 return true;
             }
-            else if (SelectedOperation == "Remove with specific attribute" && XmlStructureCollection.Count != 0 
+            else if (SelectedOperation == "Remove with specific id" && XmlStructureCollection.Count == 1 
                 && ToProjectsCollection.Count == 1 && !String.IsNullOrEmpty(EnteredAttributeValue))
             {
                 return true;
@@ -1079,7 +1084,7 @@ namespace XMLMerger.ViewModels
                         sbReportLogFile.AppendLine($"Remark: Updated Ids: {string.Join(", ", addedIds)}");
                     }
                     break;
-                case "Add with specific attribute":
+                case "Add with specific id":
                     sbReportLogFile.AppendLine($"Operation: Add with specific attribute");
                     if (backupFile == null)
                     {
@@ -1098,7 +1103,7 @@ namespace XMLMerger.ViewModels
                         sbReportLogFile.AppendLine($"Remark: Added Ids: {string.Join(", ", addedIds)}");
                     }
                     break;
-                case "Update with specific attribute":
+                case "Update with specific id":
                     sbReportLogFile.AppendLine($"Operation: Update with specific attribute");
                     if (backupFile == null)
                     {
@@ -1238,7 +1243,7 @@ namespace XMLMerger.ViewModels
 
         private void ValidateXML()
         {
-            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific attribute");
+            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific id");
             if (SelectedXMLFile == null && !isRemove)
             {
                 XMLStructure.Clear();
@@ -1278,7 +1283,7 @@ namespace XMLMerger.ViewModels
         private void LoadXmlStructure()
         {
             XMLStructure.Clear();
-            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific attribute");
+            bool isRemove = (SelectedOperation == "Remove" || selectedOperation == "Remove with specific id");
             if (SelectedXMLFile != null  && !isRemove)
             {
                 XMLStructure.Add(new XmlTags { Name = "...Blank..."});
@@ -1339,7 +1344,7 @@ namespace XMLMerger.ViewModels
             ToProjects.Clear();
             ToProjectsCollection.Clear();
             RestoreCollection.Clear();
-            if (SelectedOperation == "Remove" && SelectedOperation == "Remove with specific attribute")
+            if (SelectedOperation == "Remove" && SelectedOperation == "Remove with specific id")
             {
                 SelectedRestoreFile = null;
             }
@@ -1366,8 +1371,8 @@ namespace XMLMerger.ViewModels
                 
             }
             if (ToProjectsCollection.Count > 1 && 
-                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific attribute" || 
-                SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute"))
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific id" || 
+                SelectedOperation == "Add with specific id" || SelectedOperation == "Update with specific id"))
             {
                 MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one project.\nPlease select only one project.");
             }
@@ -1391,8 +1396,8 @@ namespace XMLMerger.ViewModels
                 }
             }
             if (ToProjectsCollection.Count > 1 &&
-                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific attribute" ||
-                SelectedOperation == "Add with specific attribute" || SelectedOperation == "Update with specific attribute"))
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific id" ||
+                SelectedOperation == "Add with specific id" || SelectedOperation == "Update with specific id"))
             {
                 MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one project.\nPlease select only one project.");
             }
@@ -1414,7 +1419,13 @@ namespace XMLMerger.ViewModels
 
                 }
             }
-            
+            if (XmlStructureCollection.Count > 1 &&
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific id" ||
+                SelectedOperation == "Add with specific id" || SelectedOperation == "Update with specific id"))
+            {
+                MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one structure.\nPlease select only one structure.");
+            }
+
         }
 
         private bool IsAddXmlStructure()
@@ -1433,6 +1444,12 @@ namespace XMLMerger.ViewModels
                 }
             }
             tempChecked.Clear();
+            if (XmlStructureCollection.Count > 1 &&
+                (SelectedOperation == "Remove" || SelectedOperation == "Remove with specific id" ||
+                SelectedOperation == "Add with specific id" || SelectedOperation == "Update with specific id"))
+            {
+                MessageBox.Show($"{SelectedOperation} operation can't be performed on more than one structure.\nPlease select only one structure.");
+            }
         }
 
         private bool IsRemoveXmlStructure()

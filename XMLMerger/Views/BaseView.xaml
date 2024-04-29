@@ -41,7 +41,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -60,7 +60,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -79,7 +79,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -98,7 +98,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -134,7 +134,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -182,7 +182,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -200,7 +200,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -218,7 +218,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -236,7 +236,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -251,7 +251,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -283,7 +283,7 @@
                                 <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -296,31 +296,31 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Add with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Add with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Update with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Update with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <TextBox Name="AttributeValue" Width="150" Text="{Binding Path=EnteredAttributeValue}">
+                <TextBox Name="AttributeValue" Width="150" Text="{Binding Path=EnteredAttributeValue, UpdateSourceTrigger=PropertyChanged}">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Add with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Add with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Update with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Update with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific attribute">
+                                <DataTrigger Binding="{Binding ElementName=Operation, Path=SelectedItem}" Value="Remove with specific id">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
